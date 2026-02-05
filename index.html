@@ -11,8 +11,6 @@
         .token-card { transition: all 0.2s ease; }
         .token-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 40px rgba(239, 68, 68, 0.15); }
         .glow { box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
-        .glow-white { box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); }
-        .glow-pink { box-shadow: 0 0 30px rgba(244, 114, 182, 0.3); }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .gradient-text { background: linear-gradient(90deg, #ef4444, #ffffff, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -20,11 +18,24 @@
         .glass { background: rgba(17, 17, 17, 0.8); backdrop-filter: blur(12px); }
         .star { position: fixed; background: white; border-radius: 50%; pointer-events: none; }
         @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .trending-scroll { animation: scroll 20s linear infinite; }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .boost-badge { animation: glow 1.5s ease-in-out infinite alternate; }
+        @keyframes glow { from { box-shadow: 0 0 5px #f59e0b; } to { box-shadow: 0 0 20px #f59e0b; } }
     </style>
 </head>
 <body class="text-white">
-    <!-- Animated Stars Background -->
     <div id="stars" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- Trending Ticker -->
+    <div class="bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 border-b border-yellow-500/20 py-2 overflow-hidden relative z-20">
+        <div class="flex items-center">
+            <span class="bg-yellow-500 text-black px-3 py-1 text-xs font-bold mr-4 flex-shrink-0">🔥 TRENDING</span>
+            <div class="overflow-hidden flex-1">
+                <div id="trendingTicker" class="flex gap-6 whitespace-nowrap trending-scroll"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="border-b border-gray-800/50 glass sticky top-0 z-50">
@@ -38,57 +49,60 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <input type="text" id="searchInput" placeholder="🔍 Search token..." 
-                           class="bg-gray-800/50 border border-gray-700 px-3 py-2 rounded-lg text-sm w-32 sm:w-40 focus:outline-none focus:border-red-500">
-                    <div id="status" class="flex items-center gap-2 text-xs bg-green-500/10 text-green-400 px-3 py-1 rounded-full">
+                    <input type="text" id="searchInput" placeholder="🔍 Search..." 
+                           class="bg-gray-800/50 border border-gray-700 px-3 py-2 rounded-lg text-sm w-28 focus:outline-none focus:border-red-500">
+                    <div id="status" class="flex items-center gap-2 text-xs bg-green-500/10 text-green-400 px-2 py-1 rounded-full">
                         <span class="w-2 h-2 bg-green-500 rounded-full pulse"></span>
                         <span>Live</span>
                     </div>
-                    <button onclick="openChecklist()" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-2 rounded-lg text-sm">
-                        📋
-                    </button>
-                    <button onclick="openWatchlist()" class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-2 rounded-lg text-sm">
-                        ⭐
-                    </button>
-                    <button onclick="fetchTokens()" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg font-semibold text-sm">
-                        🔄
-                    </button>
+                    <button onclick="openChecklist()" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-2 py-2 rounded-lg text-sm">📋</button>
+                    <button onclick="openWatchlist()" class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-2 py-2 rounded-lg text-sm">⭐</button>
+                    <button onclick="fetchAll()" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg font-semibold text-sm">🔄</button>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-6 relative z-10">
-        <!-- Live Stats Ticker -->
-        <div class="flex gap-4 overflow-x-auto scrollbar-hide pb-4 mb-6">
-            <div class="flex-shrink-0 bg-gradient-to-r from-red-500/20 to-transparent rounded-xl p-4 border border-red-500/30 min-w-[140px]">
-                <p class="text-red-400 text-xs font-medium">🔥 Found</p>
-                <p id="tokenCount" class="text-2xl font-bold text-white">--</p>
+        <!-- Boosted Tokens Section -->
+        <div id="boostedSection" class="mb-6">
+            <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
+                <span class="boost-badge bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-sm">🚀 BOOSTED</span>
+                <span class="text-gray-400 text-sm font-normal">Promoted tokens</span>
+            </h2>
+            <div id="boostedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="flex gap-3 overflow-x-auto scrollbar-hide pb-4 mb-6">
+            <div class="flex-shrink-0 bg-gradient-to-r from-red-500/20 to-transparent rounded-xl p-3 border border-red-500/30 min-w-[120px]">
+                <p class="text-red-400 text-xs">🔥 Found</p>
+                <p id="tokenCount" class="text-2xl font-bold">--</p>
             </div>
-            <div class="flex-shrink-0 bg-gradient-to-r from-green-500/20 to-transparent rounded-xl p-4 border border-green-500/30 min-w-[160px]">
-                <p class="text-green-400 text-xs font-medium">💰 Volume</p>
+            <div class="flex-shrink-0 bg-gradient-to-r from-green-500/20 to-transparent rounded-xl p-3 border border-green-500/30 min-w-[140px]">
+                <p class="text-green-400 text-xs">💰 Volume</p>
                 <p id="totalVolume" class="text-2xl font-bold text-green-400">--</p>
             </div>
-            <div class="flex-shrink-0 bg-gradient-to-r from-blue-500/20 to-transparent rounded-xl p-4 border border-blue-500/30 min-w-[140px]">
-                <p class="text-blue-400 text-xs font-medium">📊 Avg Δ</p>
+            <div class="flex-shrink-0 bg-gradient-to-r from-blue-500/20 to-transparent rounded-xl p-3 border border-blue-500/30 min-w-[120px]">
+                <p class="text-blue-400 text-xs">📊 Avg Δ</p>
                 <p id="avgChange" class="text-2xl font-bold">--</p>
             </div>
-            <div class="flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-transparent rounded-xl p-4 border border-purple-500/30 min-w-[160px]">
-                <p class="text-purple-400 text-xs font-medium">💎 Liquidity</p>
+            <div class="flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-transparent rounded-xl p-3 border border-purple-500/30 min-w-[140px]">
+                <p class="text-purple-400 text-xs">💎 Liquidity</p>
                 <p id="totalLiquidity" class="text-2xl font-bold text-purple-400">--</p>
             </div>
-            <div class="flex-shrink-0 bg-gradient-to-r from-yellow-500/20 to-transparent rounded-xl p-4 border border-yellow-500/30 min-w-[120px]">
-                <p class="text-yellow-400 text-xs font-medium">⭐ Watching</p>
+            <div class="flex-shrink-0 bg-gradient-to-r from-yellow-500/20 to-transparent rounded-xl p-3 border border-yellow-500/30 min-w-[100px]">
+                <p class="text-yellow-400 text-xs">⭐ Watch</p>
                 <p id="watchlistCount" class="text-2xl font-bold text-yellow-400">0</p>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="glass rounded-xl p-4 border border-gray-800/50 mb-6">
-            <div class="flex flex-wrap gap-3 items-end">
-                <div class="flex-1 min-w-[100px]">
+        <div class="glass rounded-xl p-3 border border-gray-800/50 mb-6">
+            <div class="flex flex-wrap gap-2 items-end">
+                <div class="flex-1 min-w-[90px]">
                     <label class="text-xs text-gray-400 block mb-1">Volume</label>
-                    <select id="minVolume" class="w-full bg-gray-800 border border-gray-700 px-2 py-2 rounded-lg text-sm">
+                    <select id="minVolume" class="w-full bg-gray-800 border border-gray-700 px-2 py-1.5 rounded-lg text-sm">
                         <option value="10000">$10K+</option>
                         <option value="25000">$25K+</option>
                         <option value="50000" selected>$50K+</option>
@@ -96,27 +110,27 @@
                         <option value="500000">$500K+</option>
                     </select>
                 </div>
-                <div class="flex-1 min-w-[100px]">
+                <div class="flex-1 min-w-[90px]">
                     <label class="text-xs text-gray-400 block mb-1">Liquidity</label>
-                    <select id="minLiquidity" class="w-full bg-gray-800 border border-gray-700 px-2 py-2 rounded-lg text-sm">
+                    <select id="minLiquidity" class="w-full bg-gray-800 border border-gray-700 px-2 py-1.5 rounded-lg text-sm">
                         <option value="5000">$5K+</option>
                         <option value="10000" selected>$10K+</option>
                         <option value="25000">$25K+</option>
                         <option value="50000">$50K+</option>
                     </select>
                 </div>
-                <div class="flex-1 min-w-[110px]">
+                <div class="flex-1 min-w-[100px]">
                     <label class="text-xs text-gray-400 block mb-1">Sort</label>
-                    <select id="sortBy" class="w-full bg-gray-800 border border-gray-700 px-2 py-2 rounded-lg text-sm">
+                    <select id="sortBy" class="w-full bg-gray-800 border border-gray-700 px-2 py-1.5 rounded-lg text-sm">
                         <option value="volume">📊 Volume</option>
                         <option value="liquidity">💎 Liquidity</option>
                         <option value="change">📈 Change</option>
                         <option value="mcap">🏦 MCap</option>
                     </select>
                 </div>
-                <div class="flex-1 min-w-[90px]">
+                <div class="flex-1 min-w-[80px]">
                     <label class="text-xs text-gray-400 block mb-1">Show</label>
-                    <select id="showCount" class="w-full bg-gray-800 border border-gray-700 px-2 py-2 rounded-lg text-sm">
+                    <select id="showCount" class="w-full bg-gray-800 border border-gray-700 px-2 py-1.5 rounded-lg text-sm">
                         <option value="12">12</option>
                         <option value="24" selected>24</option>
                         <option value="48">48</option>
@@ -125,23 +139,21 @@
             </div>
         </div>
 
-        <!-- Top 3 Spotlight -->
+        <!-- Top 3 -->
         <div id="spotlight" class="mb-6 hidden">
-            <h2 class="text-lg font-bold mb-3">🔥 Top Performers</h2>
+            <h2 class="text-lg font-bold mb-3">🥇 Top Performers</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="spotlightGrid"></div>
         </div>
 
-        <!-- Loading -->
         <div id="loading" class="text-center text-gray-400 py-12">
             <div class="inline-block w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p>Scanning for alpha...</p>
+            <p>Scanning...</p>
         </div>
 
-        <!-- Token Grid -->
         <div id="tokens" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
     </main>
 
-    <!-- Watchlist Modal -->
+    <!-- Modals -->
     <div id="watchlistModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeWatchlist()">
         <div class="bg-gray-900 rounded-2xl max-w-lg w-full p-6 border border-gray-700 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -149,54 +161,48 @@
                 <button onclick="closeWatchlist()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
             <div id="watchlistContent" class="space-y-2"></div>
-            <p id="watchlistEmpty" class="text-gray-500 text-center py-8">No tokens in watchlist. Click ⭐ on any token to add it.</p>
+            <p id="watchlistEmpty" class="text-gray-500 text-center py-8">Click ⭐ on any token to add</p>
         </div>
     </div>
 
-    <!-- Trade Checklist Modal -->
     <div id="checklistModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeChecklist()">
         <div class="bg-gray-900 rounded-2xl max-w-lg w-full p-6 border border-gray-700 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">📋 Pre-Trade Checklist</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">📋 Trade Checklist</h2>
                 <button onclick="closeChecklist()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <div class="space-y-3" id="checklistItems">
-                <label class="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 border border-transparent has-[:checked]:border-green-500/50 has-[:checked]:bg-green-500/10">
-                    <input type="checkbox" class="mt-1 w-5 h-5 rounded accent-green-500">
-                    <div><p class="font-semibold">📊 Technical Analysis</p><p class="text-sm text-gray-400">Trend, S/R, RSI, volume</p></div>
+            <div class="space-y-2">
+                <label class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg cursor-pointer has-[:checked]:bg-green-500/10 has-[:checked]:border-green-500/50 border border-transparent">
+                    <input type="checkbox" class="w-5 h-5 accent-green-500"><span>📊 TA Done (trend, S/R, RSI)</span>
                 </label>
-                <label class="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 border border-transparent has-[:checked]:border-green-500/50 has-[:checked]:bg-green-500/10">
-                    <input type="checkbox" class="mt-1 w-5 h-5 rounded accent-green-500">
-                    <div><p class="font-semibold">🌍 Macro Context</p><p class="text-sm text-gray-400">No Fed/CPI/expiry within 48h</p></div>
+                <label class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg cursor-pointer has-[:checked]:bg-green-500/10 has-[:checked]:border-green-500/50 border border-transparent">
+                    <input type="checkbox" class="w-5 h-5 accent-green-500"><span>🌍 No macro events 48h</span>
                 </label>
-                <label class="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 border border-transparent has-[:checked]:border-green-500/50 has-[:checked]:bg-green-500/10">
-                    <input type="checkbox" class="mt-1 w-5 h-5 rounded accent-green-500">
-                    <div><p class="font-semibold">⚖️ Position Sizing</p><p class="text-sm text-gray-400">1-2% risk, liq price known</p></div>
+                <label class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg cursor-pointer has-[:checked]:bg-green-500/10 has-[:checked]:border-green-500/50 border border-transparent">
+                    <input type="checkbox" class="w-5 h-5 accent-green-500"><span>⚖️ Position sized (1-2% risk)</span>
                 </label>
-                <label class="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 border border-transparent has-[:checked]:border-green-500/50 has-[:checked]:bg-green-500/10">
-                    <input type="checkbox" class="mt-1 w-5 h-5 rounded accent-green-500">
-                    <div><p class="font-semibold">🎯 Entry Criteria</p><p class="text-sm text-gray-400">Clear invalidation, 2:1 R/R</p></div>
+                <label class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg cursor-pointer has-[:checked]:bg-green-500/10 has-[:checked]:border-green-500/50 border border-transparent">
+                    <input type="checkbox" class="w-5 h-5 accent-green-500"><span>🎯 Clear invalidation + 2:1 R/R</span>
                 </label>
-                <label class="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-800 border border-transparent has-[:checked]:border-green-500/50 has-[:checked]:bg-green-500/10">
-                    <input type="checkbox" class="mt-1 w-5 h-5 rounded accent-green-500">
-                    <div><p class="font-semibold">🚫 No Red Flags</p><p class="text-sm text-gray-400">No FOMO, normal funding</p></div>
+                <label class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg cursor-pointer has-[:checked]:bg-green-500/10 has-[:checked]:border-green-500/50 border border-transparent">
+                    <input type="checkbox" class="w-5 h-5 accent-green-500"><span>🚫 No FOMO / normal funding</span>
                 </label>
             </div>
-            <div class="mt-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl">
-                <p class="text-red-300 text-sm">⚠️ "If this goes against me, am I okay with the loss?"</p>
+            <div class="mt-4 p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-sm text-red-300">
+                ⚠️ "Am I okay with this loss if wrong?"
             </div>
         </div>
     </div>
 
-    <footer class="border-t border-gray-800/50 mt-12 py-6 text-center relative z-10">
-        <div class="flex justify-center gap-2 text-xl mb-2">🔴🤍🌸</div>
-        <p class="text-gray-600 text-xs">Built by Squad | DexScreener data | 30s refresh</p>
+    <footer class="border-t border-gray-800/50 mt-12 py-4 text-center relative z-10">
+        <div class="flex justify-center gap-2 text-xl mb-1">🔴🤍🌸</div>
+        <p class="text-gray-600 text-xs">Squad Built | DexScreener | 30s refresh</p>
     </footer>
 
     <script>
-        // Create stars
+        // Stars
         const starsContainer = document.getElementById('stars');
-        for(let i = 0; i < 50; i++) {
+        for(let i = 0; i < 40; i++) {
             const star = document.createElement('div');
             star.className = 'star';
             star.style.width = Math.random() * 2 + 1 + 'px';
@@ -208,7 +214,52 @@
         }
 
         let allTokens = [];
+        let trendingTokens = [];
+        let boostedTokens = [];
         let watchlist = JSON.parse(localStorage.getItem('alphaWatchlist') || '[]');
+
+        async function fetchAll() {
+            await Promise.all([fetchTrending(), fetchBoosted(), fetchTokens()]);
+        }
+
+        async function fetchTrending() {
+            try {
+                const res = await fetch('https://api.dexscreener.com/token-boosts/top/v1');
+                const data = await res.json();
+                trendingTokens = data.filter(t => t.chainId === 'solana').slice(0, 10);
+                renderTrending();
+            } catch(e) { console.error('Trending error:', e); }
+        }
+
+        async function fetchBoosted() {
+            try {
+                const res = await fetch('https://api.dexscreener.com/token-boosts/latest/v1');
+                const data = await res.json();
+                boostedTokens = data.filter(t => t.chainId === 'solana').slice(0, 6);
+                renderBoosted();
+            } catch(e) { console.error('Boosted error:', e); }
+        }
+
+        function renderTrending() {
+            const ticker = document.getElementById('trendingTicker');
+            const items = trendingTokens.map(t => `
+                <a href="${t.url}" target="_blank" class="flex items-center gap-2 hover:text-yellow-400 transition-colors">
+                    <span class="font-bold">${t.tokenAddress?.slice(0,6)}...</span>
+                    <span class="text-yellow-500">🔥${t.amount || ''}</span>
+                </a>
+            `).join('');
+            ticker.innerHTML = items + items; // Duplicate for seamless scroll
+        }
+
+        function renderBoosted() {
+            const grid = document.getElementById('boostedGrid');
+            grid.innerHTML = boostedTokens.map(t => `
+                <a href="${t.url}" target="_blank" class="bg-gradient-to-br from-yellow-500/10 to-orange-500/5 rounded-lg p-3 border border-yellow-500/20 hover:border-yellow-500/50 transition-all">
+                    <p class="font-bold text-sm truncate">${t.tokenAddress?.slice(0,8)}...</p>
+                    <p class="text-yellow-400 text-xs">🚀 Boosted</p>
+                </a>
+            `).join('');
+        }
 
         async function fetchTokens() {
             const loading = document.getElementById('loading');
@@ -263,173 +314,97 @@
 
         function toggleWatchlist(address, symbol) {
             const idx = watchlist.findIndex(w => w.address === address);
-            if (idx >= 0) {
-                watchlist.splice(idx, 1);
-            } else {
-                watchlist.push({ address, symbol, addedAt: Date.now() });
-            }
+            if (idx >= 0) watchlist.splice(idx, 1);
+            else watchlist.push({ address, symbol, addedAt: Date.now() });
             localStorage.setItem('alphaWatchlist', JSON.stringify(watchlist));
-            renderTokens();
-            updateStats();
+            renderTokens(); updateStats();
         }
 
-        function isWatched(address) {
-            return watchlist.some(w => w.address === address);
-        }
+        function isWatched(address) { return watchlist.some(w => w.address === address); }
 
         function renderSpotlight() {
             if (allTokens.length < 3) return;
-            const spotlight = document.getElementById('spotlight');
+            document.getElementById('spotlight').classList.remove('hidden');
             const grid = document.getElementById('spotlightGrid');
-            spotlight.classList.remove('hidden');
-            
             const top3 = allTokens.slice(0, 3);
-            const colors = [
-                { border: 'border-yellow-500/50', glow: 'glow', bg: 'from-yellow-500/20', icon: '🥇' },
-                { border: 'border-gray-400/50', glow: 'glow-white', bg: 'from-gray-400/20', icon: '🥈' },
-                { border: 'border-orange-600/50', glow: 'glow-pink', bg: 'from-orange-600/20', icon: '🥉' }
-            ];
-            
-            grid.innerHTML = top3.map((token, i) => {
-                const priceChange = token.priceChange?.h24 || 0;
-                const changeColor = priceChange >= 0 ? 'text-green-400' : 'text-red-400';
-                const watched = isWatched(token.baseToken?.address);
+            const icons = ['🥇', '🥈', '🥉'];
+            grid.innerHTML = top3.map((t, i) => {
+                const chg = t.priceChange?.h24 || 0;
                 return `
-                    <div class="bg-gradient-to-br ${colors[i].bg} to-transparent rounded-xl p-4 border ${colors[i].border} ${colors[i].glow}">
+                    <div class="bg-gray-900/80 rounded-xl p-4 border ${i===0?'border-yellow-500/50 glow':'border-gray-700'}">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xl">${colors[i].icon}</span>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-bold truncate">${token.baseToken?.symbol || '???'}</h3>
-                            </div>
-                            <button onclick="toggleWatchlist('${token.baseToken?.address}','${token.baseToken?.symbol}')" class="text-lg ${watched ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}">⭐</button>
-                            <span class="${changeColor} text-lg font-bold">${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%</span>
+                            <span class="text-xl">${icons[i]}</span>
+                            <span class="font-bold flex-1 truncate">${t.baseToken?.symbol}</span>
+                            <button onclick="toggleWatchlist('${t.baseToken?.address}','${t.baseToken?.symbol}')" class="${isWatched(t.baseToken?.address)?'text-yellow-400':'text-gray-600'}">⭐</button>
+                            <span class="${chg>=0?'text-green-400':'text-red-400'} font-bold">${chg>=0?'+':''}${chg.toFixed(1)}%</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-sm mb-2">
-                            <div><span class="text-gray-400">Vol:</span> <span class="text-green-400">$${formatNumber(token.volume?.h24)}</span></div>
-                            <div><span class="text-gray-400">Liq:</span> $${formatNumber(token.liquidity?.usd)}</div>
+                        <div class="text-sm grid grid-cols-2 gap-2">
+                            <div>Vol: <span class="text-green-400">$${formatNumber(t.volume?.h24)}</span></div>
+                            <div>Liq: $${formatNumber(t.liquidity?.usd)}</div>
                         </div>
-                        <div class="flex gap-1">
-                            <a href="${token.url}" target="_blank" class="flex-1 text-center bg-white/10 hover:bg-white/20 py-1.5 rounded text-xs">DEX</a>
-                            <a href="https://birdeye.so/token/${token.baseToken?.address}?chain=solana" target="_blank" class="flex-1 text-center bg-white/10 hover:bg-white/20 py-1.5 rounded text-xs">Bird</a>
-                        </div>
-                    </div>
-                `;
+                        <a href="${t.url}" target="_blank" class="mt-2 block text-center bg-gray-800 hover:bg-gray-700 py-1.5 rounded text-xs">View →</a>
+                    </div>`;
             }).join('');
         }
 
         function renderTokens() {
             const tokensDiv = document.getElementById('tokens');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            let displayTokens = allTokens.slice(3);
-            
-            if (searchTerm) {
-                displayTokens = allTokens.filter(t => 
-                    t.baseToken?.symbol?.toLowerCase().includes(searchTerm) ||
-                    t.baseToken?.name?.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            if (displayTokens.length === 0) {
-                tokensDiv.innerHTML = '<p class="col-span-full text-center text-gray-400 py-8">No tokens found</p>';
-                return;
-            }
-
-            tokensDiv.innerHTML = displayTokens.map(token => {
-                const priceChange = token.priceChange?.h24 || 0;
-                const changeColor = priceChange >= 0 ? 'text-green-400' : 'text-red-400';
-                const changeBg = priceChange >= 0 ? 'bg-green-500/20' : 'bg-red-500/20';
-                const watched = isWatched(token.baseToken?.address);
-                
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            let display = allTokens.slice(3);
+            if (search) display = allTokens.filter(t => t.baseToken?.symbol?.toLowerCase().includes(search) || t.baseToken?.name?.toLowerCase().includes(search));
+            if (!display.length) { tokensDiv.innerHTML = '<p class="col-span-full text-center text-gray-400 py-8">No tokens</p>'; return; }
+            tokensDiv.innerHTML = display.map(t => {
+                const chg = t.priceChange?.h24 || 0;
                 return `
                     <div class="token-card bg-gray-900/60 rounded-xl p-4 border border-gray-800/50 hover:border-red-500/50">
                         <div class="flex justify-between items-start mb-2">
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-bold truncate">${token.baseToken?.symbol || '???'}</h3>
-                                <p class="text-gray-500 text-xs truncate">${token.baseToken?.name || ''}</p>
-                            </div>
-                            <button onclick="toggleWatchlist('${token.baseToken?.address}','${token.baseToken?.symbol}')" class="text-lg mr-2 ${watched ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}">⭐</button>
-                            <span class="${changeColor} ${changeBg} px-2 py-1 rounded text-sm font-semibold">${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%</span>
+                            <div class="flex-1 min-w-0"><h3 class="font-bold truncate">${t.baseToken?.symbol}</h3><p class="text-gray-500 text-xs truncate">${t.baseToken?.name||''}</p></div>
+                            <button onclick="toggleWatchlist('${t.baseToken?.address}','${t.baseToken?.symbol}')" class="mr-2 ${isWatched(t.baseToken?.address)?'text-yellow-400':'text-gray-600'}">⭐</button>
+                            <span class="${chg>=0?'text-green-400 bg-green-500/20':'text-red-400 bg-red-500/20'} px-2 py-1 rounded text-sm font-semibold">${chg>=0?'+':''}${chg.toFixed(1)}%</span>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-sm mb-3">
-                            <div class="bg-gray-800/30 rounded p-2">
-                                <p class="text-gray-500 text-xs">Volume</p>
-                                <p class="text-green-400 font-semibold">$${formatNumber(token.volume?.h24)}</p>
-                            </div>
-                            <div class="bg-gray-800/30 rounded p-2">
-                                <p class="text-gray-500 text-xs">Liquidity</p>
-                                <p class="font-semibold">$${formatNumber(token.liquidity?.usd)}</p>
-                            </div>
+                            <div class="bg-gray-800/30 rounded p-2"><p class="text-gray-500 text-xs">Volume</p><p class="text-green-400 font-semibold">$${formatNumber(t.volume?.h24)}</p></div>
+                            <div class="bg-gray-800/30 rounded p-2"><p class="text-gray-500 text-xs">Liquidity</p><p class="font-semibold">$${formatNumber(t.liquidity?.usd)}</p></div>
                         </div>
                         <div class="flex gap-1">
-                            <a href="${token.url}" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">DEX</a>
-                            <a href="https://birdeye.so/token/${token.baseToken?.address}?chain=solana" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">Bird</a>
-                            <a href="https://solscan.io/token/${token.baseToken?.address}" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">Scan</a>
+                            <a href="${t.url}" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">DEX</a>
+                            <a href="https://birdeye.so/token/${t.baseToken?.address}?chain=solana" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">Bird</a>
+                            <a href="https://solscan.io/token/${t.baseToken?.address}" target="_blank" class="flex-1 text-center bg-gray-800/50 hover:bg-gray-700 py-1.5 rounded text-xs">Scan</a>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
         }
 
         function updateStats() {
             document.getElementById('tokenCount').textContent = allTokens.length;
-            const totalVol = allTokens.reduce((sum, t) => sum + (t.volume?.h24 || 0), 0);
-            document.getElementById('totalVolume').textContent = '$' + formatNumber(totalVol);
-            const totalLiq = allTokens.reduce((sum, t) => sum + (t.liquidity?.usd || 0), 0);
-            document.getElementById('totalLiquidity').textContent = '$' + formatNumber(totalLiq);
-            const avgChg = allTokens.length ? allTokens.reduce((sum, t) => sum + (t.priceChange?.h24 || 0), 0) / allTokens.length : 0;
+            document.getElementById('totalVolume').textContent = '$' + formatNumber(allTokens.reduce((s,t) => s + (t.volume?.h24||0), 0));
+            document.getElementById('totalLiquidity').textContent = '$' + formatNumber(allTokens.reduce((s,t) => s + (t.liquidity?.usd||0), 0));
+            const avg = allTokens.length ? allTokens.reduce((s,t) => s + (t.priceChange?.h24||0), 0) / allTokens.length : 0;
             const avgEl = document.getElementById('avgChange');
-            avgEl.textContent = (avgChg >= 0 ? '+' : '') + avgChg.toFixed(1) + '%';
-            avgEl.className = `text-2xl font-bold ${avgChg >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            avgEl.textContent = (avg>=0?'+':'') + avg.toFixed(1) + '%';
+            avgEl.className = `text-2xl font-bold ${avg>=0?'text-green-400':'text-red-400'}`;
             document.getElementById('watchlistCount').textContent = watchlist.length;
         }
 
-        function formatNumber(num) {
-            if (!num) return '0';
-            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toFixed(2);
-        }
+        function formatNumber(n) { if(!n)return'0'; if(n>=1e6)return(n/1e6).toFixed(2)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'K'; return n.toFixed(2); }
 
         function openChecklist() { document.getElementById('checklistModal').classList.remove('hidden'); }
         function closeChecklist() { document.getElementById('checklistModal').classList.add('hidden'); }
-        function openWatchlist() { 
-            document.getElementById('watchlistModal').classList.remove('hidden');
-            renderWatchlist();
-        }
+        function openWatchlist() { document.getElementById('watchlistModal').classList.remove('hidden'); renderWatchlist(); }
         function closeWatchlist() { document.getElementById('watchlistModal').classList.add('hidden'); }
-        
         function renderWatchlist() {
-            const content = document.getElementById('watchlistContent');
-            const empty = document.getElementById('watchlistEmpty');
-            if (watchlist.length === 0) {
-                content.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-            empty.style.display = 'none';
-            content.innerHTML = watchlist.map(w => `
-                <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                    <span class="font-semibold">${w.symbol}</span>
-                    <div class="flex gap-2">
-                        <a href="https://dexscreener.com/solana/${w.address}" target="_blank" class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">View</a>
-                        <button onclick="toggleWatchlist('${w.address}','${w.symbol}');renderWatchlist()" class="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Remove</button>
-                    </div>
-                </div>
-            `).join('');
+            const c = document.getElementById('watchlistContent'), e = document.getElementById('watchlistEmpty');
+            if(!watchlist.length) { c.innerHTML=''; e.style.display='block'; return; }
+            e.style.display='none';
+            c.innerHTML = watchlist.map(w => `<div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"><span class="font-semibold">${w.symbol}</span><div class="flex gap-2"><a href="https://dexscreener.com/solana/${w.address}" target="_blank" class="text-xs bg-gray-700 px-2 py-1 rounded">View</a><button onclick="toggleWatchlist('${w.address}','${w.symbol}');renderWatchlist()" class="text-xs bg-red-600 px-2 py-1 rounded">✕</button></div></div>`).join('');
         }
 
         document.getElementById('searchInput').addEventListener('input', renderTokens);
-        ['minVolume', 'minLiquidity', 'showCount'].forEach(id => {
-            document.getElementById(id).addEventListener('change', fetchTokens);
-        });
-        document.getElementById('sortBy').addEventListener('change', () => { 
-            sortTokens(document.getElementById('sortBy').value);
-            renderSpotlight();
-            renderTokens();
-        });
+        ['minVolume','minLiquidity','showCount'].forEach(id => document.getElementById(id).addEventListener('change', fetchTokens));
+        document.getElementById('sortBy').addEventListener('change', () => { sortTokens(document.getElementById('sortBy').value); renderSpotlight(); renderTokens(); });
 
-        fetchTokens();
-        setInterval(fetchTokens, 30000);
+        fetchAll();
+        setInterval(fetchAll, 30000);
     </script>
 </body>
 </html>
